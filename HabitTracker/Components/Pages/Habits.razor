@@ -1,0 +1,146 @@
+@page "/habits"
+@inject HabitTracker.Services.HabitService HabitService
+
+<h3>Habits</h3>
+
+<div style="display:flex; gap:8px; align-items:center; margin-bottom:12px;">
+    <input @bind="newHabitName" placeholder="Ny vane" style="min-width:240px;" />
+    <input @bind="newHabitPoints" type="number" style="width:90px;" />
+    <button class="btn btn-primary" @onclick="AddHabitAsync">Add</button>
+</div>
+
+<p>
+    <b>Poeng i dag:</b> @pointsToday
+    <span style="margin-left:16px;"><b>Poeng totalt:</b> @pointsAllTime</span>
+</p>
+
+@if (habits.Count == 0)
+{
+    <p style="opacity:.7;">Ingen vaner ennå — legg til en over.</p>
+}
+else
+{
+    <div style="overflow-x:auto;">
+        <table class="table table-bordered table-hover table-sm align-middle">
+            <thead>
+                <tr>
+                    <th>Vane</th>
+                    <th style="text-align:center;">Streak</th>
+                    @foreach (var d in last7Days)
+                    {
+                        <th style="text-align:center;">@d.ToString("MM-dd")</th>
+                    }
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var habit in habits)
+                {
+                    <tr>
+                        <td style="min-width:220px;">
+                            <div><b>@habit.Name</b></div>
+                            <div style="opacity:.7;">+@habit.Points poeng</div>
+                        </td>
+
+                        <td style="text-align:center; width:80px;">
+                            @streaks.GetValueOrDefault(habit.Id)
+                        </td>
+
+                        @foreach (var d in last7Days)
+                        {
+                            var done = completedByDate.TryGetValue(d, out var set) && set.Contains(habit.Id);
+
+                            <td style="text-align:center;">
+                                <button class="btn btn-sm @(done ? "btn-success" : "btn-outline-secondary")"
+                                        title="Toggle @d"
+                                        @onclick="() => ToggleDateAsync(habit.Id, d)">
+                                    @(done ? "✓" : "")
+                                </button>
+                            </td>
+                        }
+
+                        <td style="text-align:right; width:60px;">
+                            <button class="btn btn-sm btn-outline-danger" title="Slett"
+                                    @onclick="() => DeleteAsync(habit.Id)">
+                                🗑️
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private List<HabitTracker.Models.Habit> habits = new();
+
+    // Siste 7 dager inkl. i dag (eldst -> nyest).
+    private List<DateOnly> last7Days = new();
+
+    // Dato -> sett med HabitId som er fullført den dagen.
+    private Dictionary<DateOnly, HashSet<Guid>> completedByDate = new();
+
+    // HabitId -> current streak.
+    private Dictionary<Guid, int> streaks = new();
+
+    private int pointsToday;
+    private int pointsAllTime;
+
+    private string newHabitName = "";
+    private int newHabitPoints = 10;
+
+    protected override async Task OnInitializedAsync()
+    {
+        BuildLast7Days();
+        await ReloadAsync();
+    }
+
+    private void BuildLast7Days()
+    {
+        var today = DateOnly.FromDateTime(DateTime.Now);
+        last7Days = Enumerable.Range(0, 7)
+            .Select(i => today.AddDays(-6 + i))
+            .ToList();
+    }
+
+    private async Task ReloadAsync()
+    {
+        habits = await HabitService.GetHabitsAsync();
+
+        completedByDate.Clear();
+        foreach (var d in last7Days)
+            completedByDate[d] = await HabitService.GetCompletedHabitIdsOnDateAsync(d);
+
+        streaks.Clear();
+        foreach (var h in habits)
+            streaks[h.Id] = await HabitService.GetCurrentStreakAsync(h.Id);
+
+        var today = DateOnly.FromDateTime(DateTime.Now);
+        pointsToday = await HabitService.TotalPointsOnDateAsync(today);
+        pointsAllTime = await HabitService.TotalPointsAllTimeAsync();
+
+        // TODO (senere): optimaliser DB-kall (1 spørring per dato/sett i stedet for flere).
+        // TODO (senere): filtrering/sortering (f.eks. etter streak, tags, navn).
+    }
+
+    private async Task AddHabitAsync()
+    {
+        await HabitService.AddHabitAsync(newHabitName, newHabitPoints);
+        newHabitName = "";
+        newHabitPoints = 10;
+        await ReloadAsync();
+    }
+
+    private async Task ToggleDateAsync(Guid habitId, DateOnly date)
+    {
+        await HabitService.ToggleCompleteOnDateAsync(habitId, date);
+        await ReloadAsync();
+    }
+
+    private async Task DeleteAsync(Guid id)
+    {
+        await HabitService.DeleteHabitAsync(id);
+        await ReloadAsync();
+    }
+}

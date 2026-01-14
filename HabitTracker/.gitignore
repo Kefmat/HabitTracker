@@ -1,0 +1,18 @@
+# Build output
+bin/
+obj/
+
+# IDE
+.vs/
+.vscode/
+
+# SQLite DB (lokal)
+*.db
+*.db-shm
+*.db-wal
+
+# Logs
+*.log
+
+# Local secrets
+appsettings.Development.json
