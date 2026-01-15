@@ -1,8 +1,50 @@
 @page "/"
+@inject HabitTracker.Services.HabitService HabitService
 
 <div class="container py-4">
     <h1 class="mb-2">Habit Tracker</h1>
     <p class="text-muted">En enkel MVP for vaner, streaks og rewards.</p>
+
+    @if (progress is null)
+    {
+        <p>Laster...</p>
+    }
+    else
+    {
+        <div class="card mb-3">
+            <div class="card-body">
+                <h5 class="card-title">Fremdrift</h5>
+
+                <p class="mb-2">
+                    <b>Poeng totalt:</b> @progress.TotalPoints
+                </p>
+
+                @if (progress.NextReward is null)
+                {
+                    <p class="mb-0">🎉 Ingen neste reward (enten ingen rewards, eller alle er låst opp).</p>
+                }
+                else
+                {
+                    <p class="mb-2">
+                        <b>Neste reward:</b> @progress.NextReward.Name
+                        <span class="text-muted">(@progress.NextReward.CostPoints poeng)</span>
+                    </p>
+
+                    <div class="progress mb-2" style="height: 18px;">
+                        <div class="progress-bar" role="progressbar"
+                             style="width: @progress.Percent%"
+                             aria-valuenow="@progress.Percent" aria-valuemin="0" aria-valuemax="100">
+                            @progress.Percent%
+                        </div>
+                    </div>
+
+                    <p class="mb-0">
+                        <b>Mangler:</b> @progress.PointsToNext poeng
+                    </p>
+                }
+            </div>
+        </div>
+    }
 
     <div class="row g-3 mt-2">
         <div class="col-12 col-md-6">
@@ -26,5 +68,15 @@
         </div>
     </div>
 
-    @* TODO : dashboard med "dagens poeng", "neste reward", og ukesstatistikk *@
+    @* TODO (senere): legg til "dagens poeng", "beste streak", og ukesstatistikk *@
 </div>
+
+@code {
+    private HabitTracker.Models.RewardProgress? progress;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Henter progress mot neste reward ved oppstart av siden.
+        progress = await HabitService.GetRewardProgressAsync();
+    }
+}

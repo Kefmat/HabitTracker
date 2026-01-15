@@ -3,12 +3,55 @@
 
 <h3>Rewards</h3>
 
-<p><b>Poeng totalt:</b> @pointsAllTime</p>
+@if (!string.IsNullOrWhiteSpace(feilMelding))
+{
+    <div class="alert alert-warning" role="alert">
+        @feilMelding
+    </div>
+}
+
+@if (progress is not null)
+{
+    <div class="card mb-3">
+        <div class="card-body">
+            <h5 class="card-title">Fremdrift mot neste reward</h5>
+
+            <p class="mb-2"><b>Poeng totalt:</b> @progress.TotalPoints</p>
+
+            @if (progress.NextReward is null)
+            {
+                <p class="mb-0">🎉 Ingen neste reward (enten ingen rewards, eller alle er låst opp).</p>
+            }
+            else
+            {
+                <p class="mb-2">
+                    <b>Neste reward:</b> @progress.NextReward.Name
+                    <span class="text-muted">(@progress.NextReward.CostPoints poeng)</span>
+                </p>
+
+                <div class="progress mb-2" style="height: 18px;">
+                    <div class="progress-bar" role="progressbar"
+                         style="width: @progress.Percent%"
+                         aria-valuenow="@progress.Percent" aria-valuemin="0" aria-valuemax="100">
+                        @progress.Percent%
+                    </div>
+                </div>
+
+                <p class="mb-0"><b>Mangler:</b> @progress.PointsToNext poeng</p>
+            }
+        </div>
+    </div>
+}
 
 <div style="display:flex; gap:8px; align-items:center; margin-bottom:12px;">
     <input @bind="newRewardName" placeholder="Ny reward" style="min-width:240px;" />
     <input @bind="newRewardCost" type="number" style="width:120px;" />
-    <button class="btn btn-primary" @onclick="AddRewardAsync">Add</button>
+    <button class="btn btn-primary"
+        @onclick="AddRewardAsync"
+        disabled="@IsAddDisabled">
+    Add
+</button>
+
 </div>
 
 @if (rewards.Count == 0)
@@ -58,11 +101,16 @@ else
 
 @code {
     private List<HabitTracker.Models.Reward> rewards = new();
+    private HabitTracker.Models.RewardProgress? progress;
     private HashSet<Guid> unlockedIds = new();
     private int pointsAllTime;
 
     private string newRewardName = "";
     private int newRewardCost = 100;
+
+    private string feilMelding = "";
+    private bool IsAddDisabled => string.IsNullOrWhiteSpace(newRewardName);
+
 
     protected override async Task OnInitializedAsync()
     {
@@ -74,6 +122,8 @@ else
         pointsAllTime = await HabitService.TotalPointsAllTimeAsync();
         rewards = await HabitService.GetRewardsAsync();
         unlockedIds = await HabitService.GetUnlockedRewardIdsAsync();
+        progress = await HabitService.GetRewardProgressAsync();
+
 
         // TODO (senere): vis "neste reward" + progress bar (poeng igjen).
         // TODO (senere): "claim reward" knapp / historikk over unlocks.
@@ -81,10 +131,20 @@ else
 
     private async Task AddRewardAsync()
     {
-        await HabitService.AddRewardAsync(newRewardName, newRewardCost);
-        newRewardName = "";
-        newRewardCost = 100;
-        await ReloadAsync();
+    feilMelding = "";
+
+    if (string.IsNullOrWhiteSpace(newRewardName))
+    {
+        feilMelding = "Du må skrive inn et navn på reward før du kan legge den til.";
+        return;
+    }
+
+    await HabitService.AddRewardAsync(newRewardName, newRewardCost);
+
+    newRewardName = "";
+    newRewardCost = 100;
+
+    await ReloadAsync();
     }
 
     private async Task DeleteRewardAsync(Guid id)

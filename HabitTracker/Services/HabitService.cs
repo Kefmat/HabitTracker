@@ -210,4 +210,52 @@ public class HabitService
 
         // TODO (senere): push-notifikasjon / toast i UI når ny reward låses opp.
     }
+
+    public async Task<RewardProgress> GetRewardProgressAsync()
+    {
+    // Henter totalpoeng (all-time)
+    var total = await TotalPointsAllTimeAsync();
+
+    // Henter alle rewards sortert på kostnad
+    var rewards = await _db.Rewards
+        .OrderBy(r => r.CostPoints)
+        .ToListAsync();
+
+    // Henter hvilke rewards som allerede er låst opp
+    var unlockedIds = await _db.RewardUnlocks
+        .Select(u => u.RewardId)
+        .ToHashSetAsync();
+
+    // Finn neste reward som ikke er låst opp
+    var next = rewards.FirstOrDefault(r => !unlockedIds.Contains(r.Id));
+
+    if (next is null)
+    {
+        // Ingen neste reward (enten ingen rewards eller alle er unlocked)
+        return new RewardProgress
+        {
+            TotalPoints = total,
+            NextReward = null,
+            PointsToNext = 0,
+            Percent = 100
+        };
+    }
+
+    var missing = Math.Max(0, next.CostPoints - total);
+
+    // Prosent: total / cost * 100, men clamp til 0-100.
+    var percent = next.CostPoints <= 0
+        ? 100
+        : (int)Math.Clamp((double)total / next.CostPoints * 100.0, 0, 100);
+
+    return new RewardProgress
+    {
+        TotalPoints = total,
+        NextReward = next,
+        PointsToNext = missing,
+        Percent = percent
+    };
+
+    // TODO (senere): Hvis du får "claim"-mekanikk, kan progress baseres på "available points".
+    }
 }
