@@ -42,8 +42,17 @@ else
                             <div style="opacity:.7;">+@habit.Points poeng</div>
                         </td>
 
-                        <td style="text-align:center; width:80px;">
-                            @streaks.GetValueOrDefault(habit.Id)
+                        <td style="text-align:center; width:180px;">
+                         @{
+                            var streak = streaks.GetValueOrDefault(habit.Id);
+                        }
+
+                        <span>@streak</span>
+
+                        @if (streakMilestones.TryGetValue(streak, out var tekst))
+                        {
+                            <span class="badge text-bg-success ms-2">@tekst</span>
+                        }
                         </td>
 
                         @foreach (var d in last7Days)
@@ -143,4 +152,14 @@ else
         await HabitService.DeleteHabitAsync(id);
         await ReloadAsync();
     }
+
+    // Milepæler for streaks.
+    // Key = antall dager, Value = tekst som vises i UI.
+    private readonly Dictionary<int, string> streakMilestones = new()
+    {
+    { 3,  "Bra start! (3 dager)" },
+    { 7,  "🎉 1 uke streak!" },
+    { 14, "💪 2 uker streak!" },
+    { 30, "🔥 30 dager streak!" }
+    };
 }
