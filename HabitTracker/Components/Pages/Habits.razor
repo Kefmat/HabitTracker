@@ -3,10 +3,24 @@
 
 <h3>Habits</h3>
 
+@if (!string.IsNullOrWhiteSpace(feilMelding))
+{
+    <div class="alert alert-warning" role="alert">
+        @feilMelding
+    </div>
+}
+
 <div style="display:flex; gap:8px; align-items:center; margin-bottom:12px;">
-    <input @bind="newHabitName" placeholder="Ny vane" style="min-width:240px;" />
+    <input @bind="newHabitName"
+       @bind:event="oninput"
+       placeholder="Ny vane"
+       style="min-width:240px;" />
     <input @bind="newHabitPoints" type="number" style="width:90px;" />
-    <button class="btn btn-primary" @onclick="AddHabitAsync">Add</button>
+    <button class="btn btn-primary"
+        @onclick="AddHabitAsync"
+        disabled="@IsAddHabitDisabled">
+        Add
+    </button>
 </div>
 
 <p>
@@ -99,6 +113,11 @@ else
     private string newHabitName = "";
     private int newHabitPoints = 10;
 
+    private string feilMelding = "";
+
+    // Brukes for å disable Add-knappen når input er tom.
+    private bool IsAddHabitDisabled => string.IsNullOrWhiteSpace(newHabitName);
+
     protected override async Task OnInitializedAsync()
     {
         BuildLast7Days();
@@ -135,10 +154,20 @@ else
 
     private async Task AddHabitAsync()
     {
-        await HabitService.AddHabitAsync(newHabitName, newHabitPoints);
-        newHabitName = "";
-        newHabitPoints = 10;
-        await ReloadAsync();
+    feilMelding = "";
+
+    if (string.IsNullOrWhiteSpace(newHabitName))
+    {
+        feilMelding = "Du må skrive inn et navn på vanen før du kan legge den til.";
+        return;
+    }
+
+    await HabitService.AddHabitAsync(newHabitName, newHabitPoints);
+
+    newHabitName = "";
+    newHabitPoints = 10;
+
+    await ReloadAsync();
     }
 
     private async Task ToggleDateAsync(Guid habitId, DateOnly date)
