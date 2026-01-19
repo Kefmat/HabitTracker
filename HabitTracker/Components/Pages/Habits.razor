@@ -1,5 +1,7 @@
 @page "/habits"
 @inject HabitTracker.Services.HabitService HabitService
+@inject IJSRuntime JS
+
 
 <h3>Habits</h3>
 
@@ -97,7 +99,7 @@ else
                         <td style="text-align:right; width:60px;">
                             <button class="btn btn-sm btn-outline-danger"
                                     title="Slett"
-                                    @onclick="() => DeleteAsync(habit.Id)">
+                                    @onclick="() => ConfirmDeleteHabit(habit.Id)">
                                 🗑️
                             </button>
                         </td>
@@ -188,6 +190,20 @@ else
         await HabitService.ToggleCompleteOnDateAsync(habitId, date);
         await ReloadAsync();
     }
+
+    private async Task ConfirmDeleteHabit(Guid id)
+    {
+        var ok = await JS.InvokeAsync<bool>(
+            "confirm",
+            "Er du sikker på at du vil slette denne vanen?"
+        );
+
+        if (ok)
+        {
+            await DeleteAsync(id);
+        }
+    }
+
 
     private async Task DeleteAsync(Guid id)
     {

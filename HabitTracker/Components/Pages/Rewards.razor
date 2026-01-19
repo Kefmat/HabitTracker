@@ -1,5 +1,7 @@
 @page "/rewards"
 @inject HabitTracker.Services.HabitService HabitService
+@inject IJSRuntime JS
+
 
 <h3>Rewards</h3>
 
@@ -88,8 +90,9 @@ else
                         }
                     </td>
                     <td style="text-align:right; width:60px;">
-                        <button class="btn btn-sm btn-outline-danger" title="Slett"
-                                @onclick="() => DeleteRewardAsync(r.Id)">
+                        <button class="btn btn-sm btn-outline-danger"
+                                title="Slett"
+                                @onclick="() => ConfirmDeleteReward(r.Id)">
                             🗑️
                         </button>
                     </td>
@@ -152,4 +155,18 @@ else
         await HabitService.DeleteRewardAsync(id);
         await ReloadAsync();
     }
+
+    private async Task ConfirmDeleteReward(Guid id)
+    {
+        var ok = await JS.InvokeAsync<bool>(
+            "confirm",
+            "Er du sikker på at du vil slette denne rewarden?"
+    );
+
+    if (ok)
+    {
+        await DeleteRewardAsync(id);
+    }
+}
+
 }
