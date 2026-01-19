@@ -12,13 +12,15 @@
 
 <div style="display:flex; gap:8px; align-items:center; margin-bottom:12px;">
     <input @bind="newHabitName"
-       @bind:event="oninput"
-       placeholder="Ny vane"
-       style="min-width:240px;" />
+           @bind:event="oninput"
+           placeholder="Ny vane"
+           style="min-width:240px;" />
+
     <input @bind="newHabitPoints" type="number" style="width:90px;" />
+
     <button class="btn btn-primary"
-        @onclick="AddHabitAsync"
-        disabled="@IsAddHabitDisabled">
+            @onclick="AddHabitAsync"
+            disabled="@IsAddHabitDisabled">
         Add
     </button>
 </div>
@@ -40,13 +42,20 @@ else
                 <tr>
                     <th>Vane</th>
                     <th style="text-align:center;">Streak</th>
+
                     @foreach (var d in last7Days)
                     {
-                        <th style="text-align:center;">@d.ToString("MM-dd")</th>
+                        var isToday = d == DateOnly.FromDateTime(DateTime.Now);
+
+                        <th style="text-align:center; @(isToday ? "background-color:#eef6ff; font-weight:bold;" : "")">
+                            @d.ToString("MM-dd")
+                        </th>
                     }
+
                     <th></th>
                 </tr>
             </thead>
+
             <tbody>
                 @foreach (var habit in habits)
                 {
@@ -57,23 +66,26 @@ else
                         </td>
 
                         <td style="text-align:center; width:180px;">
-                         @{
-                            var streak = streaks.GetValueOrDefault(habit.Id);
-                        }
+                            @{
+                                var streak = streaks.GetValueOrDefault(habit.Id);
+                            }
 
-                        <span>@streak</span>
+                            <span>@streak</span>
 
-                        @if (streakMilestones.TryGetValue(streak, out var tekst))
-                        {
-                            <span class="badge text-bg-success ms-2">@tekst</span>
-                        }
+                            @if (streakMilestones.TryGetValue(streak, out var tekst))
+                            {
+                                <span class="badge text-bg-success ms-2">@tekst</span>
+                            }
+
+                            @* TODO (senere): Lagre oppnådde milestones per habit (badges / historikk) *@
                         </td>
 
                         @foreach (var d in last7Days)
                         {
                             var done = completedByDate.TryGetValue(d, out var set) && set.Contains(habit.Id);
+                            var isToday = d == DateOnly.FromDateTime(DateTime.Now);
 
-                            <td style="text-align:center;">
+                            <td style="text-align:center; @(isToday ? "background-color:#f8fbff;" : "")">
                                 <button class="btn btn-sm @(done ? "btn-success" : "btn-outline-secondary")"
                                         title="Toggle @d"
                                         @onclick="() => ToggleDateAsync(habit.Id, d)">
@@ -83,7 +95,8 @@ else
                         }
 
                         <td style="text-align:right; width:60px;">
-                            <button class="btn btn-sm btn-outline-danger" title="Slett"
+                            <button class="btn btn-sm btn-outline-danger"
+                                    title="Slett"
                                     @onclick="() => DeleteAsync(habit.Id)">
                                 🗑️
                             </button>
@@ -154,20 +167,20 @@ else
 
     private async Task AddHabitAsync()
     {
-    feilMelding = "";
+        feilMelding = "";
 
-    if (string.IsNullOrWhiteSpace(newHabitName))
-    {
-        feilMelding = "Du må skrive inn et navn på vanen før du kan legge den til.";
-        return;
-    }
+        if (string.IsNullOrWhiteSpace(newHabitName))
+        {
+            feilMelding = "Du må skrive inn et navn på vanen før du kan legge den til.";
+            return;
+        }
 
-    await HabitService.AddHabitAsync(newHabitName, newHabitPoints);
+        await HabitService.AddHabitAsync(newHabitName, newHabitPoints);
 
-    newHabitName = "";
-    newHabitPoints = 10;
+        newHabitName = "";
+        newHabitPoints = 10;
 
-    await ReloadAsync();
+        await ReloadAsync();
     }
 
     private async Task ToggleDateAsync(Guid habitId, DateOnly date)
@@ -186,9 +199,9 @@ else
     // Key = antall dager, Value = tekst som vises i UI.
     private readonly Dictionary<int, string> streakMilestones = new()
     {
-    { 3,  "Bra start! (3 dager)" },
-    { 7,  "🎉 1 uke streak!" },
-    { 14, "💪 2 uker streak!" },
-    { 30, "🔥 30 dager streak!" }
+        { 3,  "Bra start! (3 dager)" },
+        { 7,  "🎉 1 uke streak!" },
+        { 14, "💪 2 uker streak!" },
+        { 30, "🔥 30 dager streak!" }
     };
 }
