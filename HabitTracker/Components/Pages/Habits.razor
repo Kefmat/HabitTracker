@@ -163,8 +163,9 @@ else
         pointsToday = await HabitService.TotalPointsOnDateAsync(today);
         pointsAllTime = await HabitService.TotalPointsAllTimeAsync();
 
-        // TODO (senere): optimaliser DB-kall (1 spørring per dato/sett i stedet for flere).
-        // TODO (senere): filtrering/sortering (f.eks. etter streak, tags, navn).
+        // TODO (ytelse): optimaliser DB-kall ved å hente alle completions i én spørring.
+        // TODO (UX): legg til sortering (etter streak, navn, poeng).
+        // TODO (funksjon): støtte for ulike frekvenser (daglig, ukentlig, egendefinert).
     }
 
     private async Task AddHabitAsync()

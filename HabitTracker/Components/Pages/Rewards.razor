@@ -128,8 +128,9 @@ else
         progress = await HabitService.GetRewardProgressAsync();
 
 
-        // TODO (senere): vis "neste reward" + progress bar (poeng igjen).
-        // TODO (senere): "claim reward" knapp / historikk over unlocks.
+        // TODO (UX): legg til "claim reward"-knapp i stedet for auto-unlock.
+        // TODO (historikk): vis når en reward ble låst opp.
+        // TODO (balanse): skill mellom tilgjengelige poeng og all-time poeng.
     }
 
     private async Task AddRewardAsync()

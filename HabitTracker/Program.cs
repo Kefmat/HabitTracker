@@ -40,3 +40,8 @@ app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
 app.Run();
+
+// TODO (senere):
+// - Integrasjon mot eksterne tjenester (Garmin, Goodreads, Lifesum)
+// - AI-coach for motivasjon og forslag (egen service)
+// - Autentisering / brukerprofiler
