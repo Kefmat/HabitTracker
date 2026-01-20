@@ -159,6 +159,12 @@ else
         foreach (var h in habits)
             streaks[h.Id] = await HabitService.GetCurrentStreakAsync(h.Id);
 
+        // Sorter vaner: høyest streak først, deretter navn
+        habits = habits
+            .OrderByDescending(h => streaks.GetValueOrDefault(h.Id))
+            .ThenBy(h => h.Name)
+            .ToList();
+
         var today = DateOnly.FromDateTime(DateTime.Now);
         pointsToday = await HabitService.TotalPointsOnDateAsync(today);
         pointsAllTime = await HabitService.TotalPointsAllTimeAsync();

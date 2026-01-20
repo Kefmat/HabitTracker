@@ -11,6 +11,9 @@ namespace HabitTracker.Services;
 /// </summary>
 public class HabitService
 {
+    // TODO (arkitektur): del opp i flere services (HabitService, RewardService, StatsService)
+    // når applikasjonen vokser.
+
     private readonly AppDbContext _db;
 
     public HabitService(AppDbContext db)
@@ -257,5 +260,7 @@ public class HabitService
     };
 
     // TODO (senere): Hvis du får "claim"-mekanikk, kan progress baseres på "available points".
+    // TODO (ytelse): vurder caching eller pre-kalkulerte verdier for streaks.
+
     }
 }
