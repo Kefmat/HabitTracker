@@ -149,6 +149,34 @@ public class HabitService
         return streak;
     }
 
+    public async Task<int> GetBestStreakAsync(Guid habitId)
+    {
+        // Beste streak = lengste sammenhengende rekke av dager med completion.
+        // Vi henter alle datoer sortert stigende og teller "runs".
+        var dates = await _db.Completions
+            .Where(c => c.HabitId == habitId)
+            .Select(c => c.Date)
+            .OrderBy(d => d)
+            .ToListAsync();
+
+        int best = 0;
+        int current = 0;
+        DateOnly? previous = null;
+
+    foreach (var d in dates)
+    {
+        if (previous is null || d == previous.Value.AddDays(1))
+            current++;
+        else
+            current = 1;
+
+        best = Math.Max(best, current);
+        previous = d;
+    }
+
+        return best;
+    }
+
     // -----------------------
     // REWARDS
     // -----------------------

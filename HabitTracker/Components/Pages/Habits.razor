@@ -73,6 +73,7 @@ else
                             }
 
                             <span>@streak</span>
+                            <span class="text-muted ms-2">· Beste: @bestStreaks.GetValueOrDefault(habit.Id)</span>
 
                             @if (streakMilestones.TryGetValue(streak, out var tekst))
                             {
@@ -122,6 +123,10 @@ else
     // HabitId -> current streak.
     private Dictionary<Guid, int> streaks = new();
 
+    // HabitId -> beste streak (all-time)
+    private Dictionary<Guid, int> bestStreaks = new();
+
+
     private int pointsToday;
     private int pointsAllTime;
 
@@ -159,6 +164,11 @@ else
         foreach (var h in habits)
             streaks[h.Id] = await HabitService.GetCurrentStreakAsync(h.Id);
 
+        // HabitId -> beste streak (all-time)
+        bestStreaks.Clear();
+        foreach (var h in habits)
+            bestStreaks[h.Id] = await HabitService.GetBestStreakAsync(h.Id);
+
         // Sorter vaner: høyest streak først, deretter navn
         habits = habits
             .OrderByDescending(h => streaks.GetValueOrDefault(h.Id))
@@ -170,9 +180,9 @@ else
         pointsAllTime = await HabitService.TotalPointsAllTimeAsync();
 
         // TODO (ytelse): optimaliser DB-kall ved å hente alle completions i én spørring.
-        // TODO (UX): legg til sortering (etter streak, navn, poeng).
         // TODO (funksjon): støtte for ulike frekvenser (daglig, ukentlig, egendefinert).
     }
+
 
     private async Task AddHabitAsync()
     {
@@ -210,7 +220,6 @@ else
             await DeleteAsync(id);
         }
     }
-
 
     private async Task DeleteAsync(Guid id)
     {
