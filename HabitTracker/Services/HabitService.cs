@@ -118,6 +118,69 @@ public class HabitService
     }
 
     // -----------------------
+    // STATS
+    // -----------------------
+
+    public async Task<WeeklyStats> GetWeeklyStatsAsync(DateOnly? endDate = null, int days = 7)
+    {
+    // Stats for siste X dager (inkl. endDate).
+    var end = endDate ?? DateOnly.FromDateTime(DateTime.Now);
+    var start = end.AddDays(-(days - 1));
+
+    // Hent alle completions i perioden.
+    var completions = await _db.Completions
+        .Where(c => c.Date >= start && c.Date <= end)
+        .Select(c => new { c.HabitId, c.Date })
+        .ToListAsync();
+
+    // Hent habits (for poeng og navn).
+    var habits = await _db.Habits
+        .Select(h => new { h.Id, h.Name, h.Points })
+        .ToListAsync();
+
+    var habitPointsById = habits.ToDictionary(h => h.Id, h => h.Points);
+    var habitNameById = habits.ToDictionary(h => h.Id, h => h.Name);
+
+    // Lag “tom” liste med alle dager i perioden, så UI alltid får 7 rader.
+    var result = new WeeklyStats();
+    result.Days = Enumerable.Range(0, days)
+        .Select(i => new DailyStat { Date = start.AddDays(i), Points = 0, Completions = 0 })
+        .ToList();
+
+    // Gruppér completions per dag og regn ut poeng.
+    var byDate = completions
+        .GroupBy(c => c.Date)
+        .ToDictionary(g => g.Key, g => g.ToList());
+
+    foreach (var day in result.Days)
+    {
+        if (!byDate.TryGetValue(day.Date, out var list)) continue;
+
+        day.Completions = list.Count;
+
+        // Poeng = sum av habit.Points for alle completions den dagen.
+        day.Points = list.Sum(x => habitPointsById.TryGetValue(x.HabitId, out var p) ? p : 0);
+    }
+
+    // Finn “top habit” i perioden (mest fullført).
+    var byHabit = completions
+        .GroupBy(c => c.HabitId)
+        .Select(g => new { HabitId = g.Key, Count = g.Count() })
+        .OrderByDescending(x => x.Count)
+        .FirstOrDefault();
+
+    if (byHabit is not null && habitNameById.TryGetValue(byHabit.HabitId, out var name))
+    {
+        result.TopHabitName = name;
+        result.TopHabitCompletions = byHabit.Count;
+    }
+
+    // TODO (senere): legg til “best streak denne uka”, “consistency score”, grafer osv.
+    return result;
+}
+
+
+    // -----------------------
     // STREAKS
     // -----------------------
 
