@@ -14,8 +14,13 @@ builder.Services.AddRazorComponents()
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("Default")));
 
-// Service-laget vårt bør være Scoped fordi det bruker DbContext (som også er Scoped).
+// Service-laget bør være Scoped fordi det bruker DbContext (som også er Scoped).
 builder.Services.AddScoped<HabitService>();
+
+// App-services
+builder.Services.AddScoped<HabitTracker.Services.HabitService>();
+builder.Services.AddScoped<HabitTracker.Services.CoachService>();
+
 
 var app = builder.Build();
 
@@ -26,6 +31,7 @@ if (!app.Environment.IsDevelopment())
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
     app.UseHsts();
 }
+
 
 app.UseHttpsRedirection();
 

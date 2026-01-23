@@ -1,0 +1,89 @@
+@page "/coach"
+@inject HabitTracker.Services.CoachService CoachService
+
+<h3>AI Coach (MVP)</h3>
+
+<p class="text-muted">
+    Dette er en enkel, regelbasert coach. Senere kan vi bytte til ekte AI uten å endre UI.
+</p>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <h5 class="card-title">Spør coachen</h5>
+
+        <div class="d-flex gap-2 align-items-center">
+            <input class="form-control"
+                   placeholder="Spør om motivasjon, rutine, start, belønning..."
+                   @bind="question"
+                   @bind:event="oninput" />
+
+            <button class="btn btn-primary" @onclick="AskAsync" disabled="@string.IsNullOrWhiteSpace(question)">
+                Spør
+            </button>
+
+            <button class="btn btn-outline-secondary" @onclick="RefreshAsync">
+                Oppdater råd
+            </button>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(answer))
+        {
+            <div class="alert alert-info mt-3 mb-0">
+                <b>Svar:</b> @answer
+            </div>
+        }
+    </div>
+</div>
+
+@if (messages is null)
+{
+    <p>Laster...</p>
+}
+else
+{
+    <div class="row g-3">
+        @foreach (var m in messages)
+        {
+            <div class="col-12 col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">@m.Title</h5>
+                        <p class="card-text">@m.Body</p>
+
+                        @* TODO (UI): style basert på Tone (badge/farge) *@
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    @* TODO (AI): lag “dagens plan” (1–3 små oppgaver) basert på habits og stats *@
+}
+
+@code {
+    private string question = "";
+    private string answer = "";
+    private List<HabitTracker.Models.CoachMessage>? messages;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshAsync();
+    }
+
+    private async Task RefreshAsync()
+    {
+        answer = "";
+        var res = await CoachService.GetCoachAsync();
+        messages = res.Messages;
+    }
+
+    private async Task AskAsync()
+    {
+        var res = await CoachService.GetCoachAsync(question);
+        messages = res.Messages;
+        answer = res.AnswerToQuestion ?? "";
+
+        // Tøm ikke spørsmålet automatisk – ofte vil man justere teksten litt.
+        // TODO (UX): legg til historikk over spørsmål/svar.
+    }
+}
