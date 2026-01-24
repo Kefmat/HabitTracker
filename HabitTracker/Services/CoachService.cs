@@ -3,35 +3,34 @@ using HabitTracker.Models;
 namespace HabitTracker.Services;
 
 /// CoachService gir råd/motivasjon basert på data i appen.
-/// Nå er den regelbasert (ingen ekstern AI).
-///
-/// TODO (AI): Bytt ut regelmotoren med ekte AI (OpenAI / Azure OpenAI)
-/// ved å sende en "prompt" med ukesstatistikk, vaner og mål.
-
+/// Den gir alltid "regelbaserte" tips, og kan i tillegg bruke ekte AI når tilgjengelig.
 public class CoachService
 {
     private readonly HabitService _habitService;
+    private readonly ICoachClient _coachClient;
 
-    public CoachService(HabitService habitService)
+    public bool IsAiEnabled => _coachClient.IsAiEnabled;
+
+    public CoachService(HabitService habitService, ICoachClient coachClient)
     {
         _habitService = habitService;
+        _coachClient = coachClient;
     }
 
     public async Task<CoachResult> GetCoachAsync(string? userQuestion = null)
     {
         var result = new CoachResult();
 
-        // Hent grunn-data vi kan gi råd ut fra.
         var habits = await _habitService.GetHabitsAsync();
         var weekly = await _habitService.GetWeeklyStatsAsync();
 
-        // --- 1) Automatisk råd (basert på status) ---
+        // --- 1) Automatisk råd (regelbasert) ---
         if (habits.Count == 0)
         {
             result.Messages.Add(new CoachMessage
             {
                 Title = "Start enkelt",
-                Body = "Legg til 1 vane du faktisk klarer å gjøre hver dag i 2 minutter (f.eks. gå 5 minutter, lese 1 side, drikke vann).",
+                Body = "Legg til 1 vane du faktisk klarer å gjøre hver dag i 2 minutter (f.eks. gå 5 min, lese 1 side, drikke vann).",
                 Tone = CoachTone.Tip
             });
 
@@ -41,12 +40,9 @@ public class CoachService
                 Body = "Målet er ikke perfeksjon – det er å møte opp. Når det er lett, kan du øke gradvis.",
                 Tone = CoachTone.Positive
             });
-
-            // Hvis ingen vaner, svarer vi fortsatt på spørsmål under.
         }
         else
         {
-            // Enkel vurdering av “aktivitet” siste 7 dager.
             var totalCompletions = weekly.TotalCompletions;
             var totalPoints = weekly.TotalPoints;
 
@@ -55,14 +51,14 @@ public class CoachService
                 result.Messages.Add(new CoachMessage
                 {
                     Title = "Ingen fullføringer siste 7 dager",
-                    Body = "Det er helt vanlig å starte tregt. Velg én vane og gjør den superenkel: '2 minutter' eller 'bare start'.",
+                    Body = "Helt vanlig. Velg én vane og gjør den superenkel: '2 minutter' eller 'bare start'.",
                     Tone = CoachTone.Warning
                 });
 
                 result.Messages.Add(new CoachMessage
                 {
                     Title = "Plan for i dag",
-                    Body = "Sett et minimumsmål du kan klare selv på en dårlig dag. Når du har gjort minimum → bonus hvis du vil.",
+                    Body = "Sett et minimumsmål du klarer selv på en dårlig dag. Når minimum er gjort → bonus hvis du vil.",
                     Tone = CoachTone.Tip
                 });
             }
@@ -71,7 +67,7 @@ public class CoachService
                 result.Messages.Add(new CoachMessage
                 {
                     Title = "Du er i gang",
-                    Body = $"Du har {totalCompletions} fullføringer siste 7 dager. Prøv å få til én liten fullføring i dag for å bygge rytme.",
+                    Body = $"Du har {totalCompletions} fullføringer siste 7 dager. Prøv én liten fullføring i dag for å bygge rytme.",
                     Tone = CoachTone.Positive
                 });
             }
@@ -80,23 +76,21 @@ public class CoachService
                 result.Messages.Add(new CoachMessage
                 {
                     Title = "Sterk uke",
-                    Body = $"Du har {totalCompletions} fullføringer og {totalPoints} poeng siste 7 dager. Fortsett med samme tempo – og hold det lett nok til å være stabilt.",
+                    Body = $"Du har {totalCompletions} fullføringer og {totalPoints} poeng siste 7 dager. Hold det lett nok til å være stabilt.",
                     Tone = CoachTone.Positive
                 });
             }
 
-            // “Beste vane”-feedback (fra WeeklyStats).
             if (!string.IsNullOrWhiteSpace(weekly.TopHabitName))
             {
                 result.Messages.Add(new CoachMessage
                 {
-                    Title = "Din toppvane denne uka",
-                    Body = $"{weekly.TopHabitName} er mest fullført. Hvis du vil ha mer momentum: bygg en 'trigger' (f.eks. etter kaffe / etter tannpuss).",
+                    Title = "Toppvane denne uka",
+                    Body = $"{weekly.TopHabitName} er mest fullført. Knyt den til en trigger: 'Etter X gjør jeg Y'.",
                     Tone = CoachTone.Tip
                 });
             }
 
-            // Generell motivasjon
             result.Messages.Add(new CoachMessage
             {
                 Title = "Motivasjon",
@@ -105,18 +99,63 @@ public class CoachService
             });
         }
 
-        // --- 2) Svar på brukerens spørsmål (regelbasert Q&A) ---
+        // --- 2) Spørsmål/svar (AI hvis mulig, ellers fallback) ---
         if (!string.IsNullOrWhiteSpace(userQuestion))
         {
-            result.AnswerToQuestion = AnswerQuestion(userQuestion.Trim());
+            if (_coachClient.IsAiEnabled)
+            {
+                var system = BuildSystemPrompt();
+                var user = BuildUserPrompt(userQuestion, habits, weekly);
+
+                try
+                {
+                    result.AnswerToQuestion = await _coachClient.AskAsync(system, user);
+                    if (string.IsNullOrWhiteSpace(result.AnswerToQuestion))
+                    {
+                        // Hvis AI returnerte tomt, bruk fallback.
+                        result.AnswerToQuestion = AnswerQuestionFallback(userQuestion);
+                    }
+                }
+                catch
+                {
+                    // Hvis AI feiler (nett/API/limit), bruk fallback.
+                    result.AnswerToQuestion = AnswerQuestionFallback(userQuestion);
+                }
+            }
+            else
+            {
+                result.AnswerToQuestion = AnswerQuestionFallback(userQuestion);
+            }
         }
 
         return result;
     }
 
+    private static string BuildSystemPrompt()
+    {
+        return
+            "Du er en vennlig coach for vaner. Svar kort, konkret og på norsk. " +
+            "Gi 1–3 konkrete forslag. Unngå lange foredrag.";
+    }
+
+    private static string BuildUserPrompt(string question, List<Models.Habit> habits, Models.WeeklyStats weekly)
+    {
+        var habitNames = habits.Count == 0
+            ? "Ingen vaner ennå."
+            : string.Join(", ", habits.Select(h => $"{h.Name} (+{h.Points})"));
+
+        return
+            $"Brukerens spørsmål: {question}\n\n" +
+            $"Vaner: {habitNames}\n" +
+            $"Siste 7 dager: {weekly.TotalCompletions} fullføringer, {weekly.TotalPoints} poeng.\n" +
+            (string.IsNullOrWhiteSpace(weekly.TopHabitName)
+                ? ""
+                : $"Toppvane: {weekly.TopHabitName} ({weekly.TopHabitCompletions} fullføringer).\n") +
+            "\nSvar nå med konkrete steg.";
+    }
+
     private static string PickMotivationLine()
     {
-        // Enkle “rotation”-linjer. Senere kan dette være AI-generert.
         var lines = new[]
         {
             "Små steg hver dag slår store skippertak.",
@@ -126,37 +165,26 @@ public class CoachService
             "Målet er konsistens, ikke perfeksjon."
         };
 
-        // Litt random uten å være “for fancy”.
         var idx = Random.Shared.Next(0, lines.Length);
         return lines[idx];
     }
 
-    private static string AnswerQuestion(string question)
+    private static string AnswerQuestionFallback(string question)
     {
         var q = question.ToLowerInvariant();
 
-        // Super enkel “intent”-matching. Dette er nok for MVP.
         if (q.Contains("motivasjon") || q.Contains("motivert") || q.Contains("orker"))
-        {
-            return "Prøv 2-minutters regelen: gjør det i 2 minutter. Når du først har startet, kan du stoppe eller fortsette. Start er målet.";
-        }
+            return "Prøv 2-minutters regelen: gjør det i 2 minutter. Start er målet. Når du først har startet, kan du stoppe eller fortsette.";
 
         if (q.Contains("starte") || q.Contains("begynne") || q.Contains("komme i gang"))
-        {
-            return "Velg én vane. Gjør den så liten at den er vanskelig å feile (f.eks. 1 side, 5 knebøy, 2 minutter rydding). Gjenta i 7 dager.";
-        }
+            return "Velg én vane. Gjør den så liten at den er vanskelig å feile (1 side, 5 squats, 2 min rydding). Gjenta i 7 dager.";
 
-        if (q.Contains("rutine") || q.Contains("vaner") || q.Contains("konsistens"))
-        {
-            return "Knytt vanen til en trigger: 'Etter X, gjør jeg Y'. Eksempel: Etter tannpuss → 10 squats. Etter kaffe → skrive 1 setning.";
-        }
+        if (q.Contains("rutine") || q.Contains("konsistens"))
+            return "Knytt vanen til en trigger: 'Etter X, gjør jeg Y'. Eksempel: Etter tannpuss → 10 squats. Etter kaffe → 1 side lesing.";
 
         if (q.Contains("belønning") || q.Contains("reward"))
-        {
-            return "Belønning fungerer best når den er tett på handlingen. Vurder små belønninger etter fullføring, og større rewards etter en uke/streak.";
-        }
+            return "Belønning fungerer best når den er tett på handlingen: små belønninger etter fullføring og større rewards etter uke/streak.";
 
-        // Default-svar
-        return "Fortell meg hva du prøver å få til (f.eks. trening, lesing, kosthold), og hva som stopper deg – så kan vi gjøre planen enklere.";
+        return "Si hva du prøver å få til (trening/lesing/kosthold) og hva som stopper deg, så gjør vi planen enklere.";
     }
 }

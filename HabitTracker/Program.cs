@@ -2,52 +2,50 @@ using HabitTracker.Components;
 using HabitTracker.Data;
 using HabitTracker.Services;
 using Microsoft.EntityFrameworkCore;
+using OpenAI.Chat;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Registrerer Razor Components + interaktiv server-rendering (Blazor Server-stil).
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-// EF Core + SQLite.
-// Connection string ligger i appsettings.json under ConnectionStrings:Default.
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("Default")));
 
 // Service-laget bør være Scoped fordi det bruker DbContext (som også er Scoped).
 builder.Services.AddScoped<HabitService>();
 
-// App-services
-builder.Services.AddScoped<HabitTracker.Services.HabitService>();
-builder.Services.AddScoped<HabitTracker.Services.CoachService>();
+// Registrer AI-klient: ekte AI hvis OPENAI_API_KEY finnes, ellers fallback.
+// OpenAI .NET SDK anbefaler at klientene er thread-safe og kan registreres som singleton.
+builder.Services.AddSingleton<ICoachClient>(sp =>
+{
+    var apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
+    if (string.IsNullOrWhiteSpace(apiKey))
+        return new RuleBasedCoachClient();
 
+    // Velg modell her (enkelt å endre senere).
+    // Du kan starte med "gpt-4o" som i SDK-eksempel.
+    var model = "gpt-4o";
+    var chatClient = new ChatClient(model: model, apiKey: apiKey);
+
+    return new OpenAiCoachClient(chatClient);
+});
+
+builder.Services.AddScoped<CoachService>();
 
 var app = builder.Build();
 
-// Standard pipeline-oppsett.
-// I prod bruker vi error handler + HSTS.
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
     app.UseHsts();
 }
 
-
 app.UseHttpsRedirection();
-
-// Antiforgery beskytter mot CSRF-angrep i server-rendered scenarier.
 app.UseAntiforgery();
-
-// Gir støtte for statiske filer (CSS/JS osv).
 app.MapStaticAssets();
 
-// Starter Blazor/Razor Components appen.
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
 app.Run();
-
-// TODO (senere):
-// - Integrasjon mot eksterne tjenester (Garmin, Goodreads, Lifesum)
-// - AI-coach for motivasjon og forslag (egen service)
-// - Autentisering / brukerprofiler
