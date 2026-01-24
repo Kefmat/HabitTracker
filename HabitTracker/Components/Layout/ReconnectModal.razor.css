@@ -1,3 +1,4 @@
+/* Skjul alle state-blokker som default */
 .components-reconnect-first-attempt-visible,
 .components-reconnect-repeated-attempt-visible,
 .components-reconnect-failed-visible,
@@ -5,6 +6,7 @@
     display: none;
 }
 
+/* Når modalen er aktiv, vis riktig innhold */
 #components-reconnect-modal.components-reconnect-show .components-reconnect-first-attempt-visible,
 #components-reconnect-modal.components-reconnect-show .components-rejoining-animation,
 #components-reconnect-modal.components-reconnect-retrying,
@@ -15,7 +17,7 @@
     display: block;
 }
 
-
+/* Base styling for dialogen */
 #components-reconnect-modal {
     background-color: white;
     width: 20rem;
@@ -24,54 +26,55 @@
     border: 0;
     border-radius: 0.5rem;
     box-shadow: 0 3px 6px 2px rgba(0, 0, 0, 0.3);
+
     opacity: 0;
-    transition: display 0.5s allow-discrete, overlay 0.5s allow-discrete;
     animation: components-reconnect-modal-fadeOutOpacity 0.5s both;
-    &[open]
 
-{
-    animation: components-reconnect-modal-slideUp 1.5s cubic-bezier(.05, .89, .25, 1.02) 0.3s, components-reconnect-modal-fadeInOpacity 0.5s ease-in-out 0.3s;
+    /* VIKTIG: Ikke la modalen/backdrop blokke klikk når den ikke er aktiv */
+    pointer-events: none;
+}
+
+/* Gyldig CSS for open-state (erstatter &[open]) */
+#components-reconnect-modal[open] {
+    animation:
+        components-reconnect-modal-slideUp 1.5s cubic-bezier(.05, .89, .25, 1.02) 0.3s,
+        components-reconnect-modal-fadeInOpacity 0.5s ease-in-out 0.3s;
     animation-fill-mode: both;
+
+    /* Når den er åpen, skal den kunne klikkes */
+    pointer-events: auto;
 }
 
-}
-
+/* Backdrop (overlay). Kun relevant når dialog er open */
 #components-reconnect-modal::backdrop {
     background-color: rgba(0, 0, 0, 0.4);
     animation: components-reconnect-modal-fadeInOpacity 0.5s ease-in-out;
     opacity: 1;
 }
 
-@keyframes components-reconnect-modal-slideUp {
-    0% {
-        transform: translateY(30px) scale(0.95);
-    }
+/* FAILSAFE: hvis noe henger igjen, ikke la backdrop blokkere klikk når dialogen ikke er open */
+#components-reconnect-modal:not([open])::backdrop {
+    pointer-events: none;
+    opacity: 0;
+}
 
-    100% {
-        transform: translateY(0);
-    }
+/* Animasjoner */
+@keyframes components-reconnect-modal-slideUp {
+    0% { transform: translateY(30px) scale(0.95); }
+    100% { transform: translateY(0); }
 }
 
 @keyframes components-reconnect-modal-fadeInOpacity {
-    0% {
-        opacity: 0;
-    }
-
-    100% {
-        opacity: 1;
-    }
+    0% { opacity: 0; }
+    100% { opacity: 1; }
 }
 
 @keyframes components-reconnect-modal-fadeOutOpacity {
-    0% {
-        opacity: 1;
-    }
-
-    100% {
-        opacity: 0;
-    }
+    0% { opacity: 1; }
+    100% { opacity: 0; }
 }
 
+/* Innhold */
 .components-reconnect-container {
     display: flex;
     flex-direction: column;
@@ -92,14 +95,15 @@
     border-radius: 4px;
 }
 
-    #components-reconnect-modal button:hover {
-        background-color: #3b6ea2;
-    }
+#components-reconnect-modal button:hover {
+    background-color: #3b6ea2;
+}
 
-    #components-reconnect-modal button:active {
-        background-color: #6b9ed2;
-    }
+#components-reconnect-modal button:active {
+    background-color: #6b9ed2;
+}
 
+/* Loader */
 .components-rejoining-animation {
     display: block;
     position: relative;
@@ -107,17 +111,17 @@
     height: 80px;
 }
 
-    .components-rejoining-animation div {
-        position: absolute;
-        border: 3px solid #0087ff;
-        opacity: 1;
-        border-radius: 50%;
-        animation: components-rejoining-animation 1.5s cubic-bezier(0, 0.2, 0.8, 1) infinite;
-    }
+.components-rejoining-animation div {
+    position: absolute;
+    border: 3px solid #0087ff;
+    opacity: 1;
+    border-radius: 50%;
+    animation: components-rejoining-animation 1.5s cubic-bezier(0, 0.2, 0.8, 1) infinite;
+}
 
-        .components-rejoining-animation div:nth-child(2) {
-            animation-delay: -0.5s;
-        }
+.components-rejoining-animation div:nth-child(2) {
+    animation-delay: -0.5s;
+}
 
 @keyframes components-rejoining-animation {
     0% {
@@ -127,7 +131,6 @@
         height: 0;
         opacity: 0;
     }
-
     4.9% {
         top: 40px;
         left: 40px;
@@ -135,7 +138,6 @@
         height: 0;
         opacity: 0;
     }
-
     5% {
         top: 40px;
         left: 40px;
@@ -143,7 +145,6 @@
         height: 0;
         opacity: 1;
     }
-
     100% {
         top: 0px;
         left: 0px;

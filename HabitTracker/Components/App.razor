@@ -3,20 +3,21 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-    @* Viktig: base href må være "/" for korrekt routing *@
     <base href="/" />
 
+    <!-- Bootswatch (Bootstrap tema) -->
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/lux/bootstrap.min.css" />
+
+    <!-- Din egen CSS -->
     <link rel="stylesheet" href="app.css" />
     <link rel="stylesheet" href="HabitTracker.styles.css" />
+
     <HeadOutlet />
 </head>
 
 <body>
-    @* Routes-komponenten håndterer all routing *@
     <Routes />
-
-    @* Blazor runtime (server interaktiv) *@
     <script src="_framework/blazor.web.js"></script>
 </body>
 </html>

@@ -2,8 +2,7 @@
 @inject HabitTracker.Services.HabitService HabitService
 @inject IJSRuntime JS
 
-
-<h3>Rewards</h3>
+<PageWrapper Title="Rewards" Subtitle="Sett belønninger og lås dem opp med poeng.">
 
 @if (!string.IsNullOrWhiteSpace(feilMelding))
 {
@@ -45,61 +44,71 @@
     </div>
 }
 
-<div style="display:flex; gap:8px; align-items:center; margin-bottom:12px;">
-    <input @bind="newRewardName" placeholder="Ny reward" style="min-width:240px;" />
-    <input @bind="newRewardCost" type="number" style="width:120px;" />
-    <button class="btn btn-primary"
-        @onclick="AddRewardAsync"
-        disabled="@IsAddDisabled">
-    Add
-</button>
+<div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+    <input class="form-control"
+           style="max-width: 320px;"
+           @bind="newRewardName"
+           @bind:event="oninput"
+           placeholder="Ny reward" />
 
+    <input class="form-control"
+           style="max-width: 160px;"
+           @bind="newRewardCost"
+           type="number" />
+
+    <button class="btn btn-primary"
+            @onclick="AddRewardAsync"
+            disabled="@IsAddDisabled">
+        Legg til
+    </button>
 </div>
 
 @if (rewards.Count == 0)
 {
-    <p style="opacity:.7;">Ingen rewards ennå — legg til en over.</p>
+    <p class="text-muted">Ingen rewards ennå — legg til en over.</p>
 }
 else
 {
-    <table class="table table-sm align-middle">
-        <thead>
-            <tr>
-                <th>Reward</th>
-                <th>Kost</th>
-                <th>Status</th>
-                <th></th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var r in rewards)
-            {
-                var unlocked = unlockedIds.Contains(r.Id);
-
+    <div class="table-responsive">
+        <table class="table table-sm align-middle">
+            <thead>
                 <tr>
-                    <td><b>@r.Name</b></td>
-                    <td>@r.CostPoints</td>
-                    <td>
-                        @if (unlocked)
-                        {
-                            <span class="badge text-bg-success">Unlocked</span>
-                        }
-                        else
-                        {
-                            <span class="badge text-bg-secondary">Locked</span>
-                        }
-                    </td>
-                    <td style="text-align:right; width:60px;">
-                        <button class="btn btn-sm btn-outline-danger"
-                                title="Slett"
-                                @onclick="() => ConfirmDeleteReward(r.Id)">
-                            🗑️
-                        </button>
-                    </td>
+                    <th>Reward</th>
+                    <th>Kost</th>
+                    <th>Status</th>
+                    <th></th>
                 </tr>
-            }
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                @foreach (var r in rewards)
+                {
+                    var unlocked = unlockedIds.Contains(r.Id);
+
+                    <tr>
+                        <td><b>@r.Name</b></td>
+                        <td>@r.CostPoints</td>
+                        <td>
+                            @if (unlocked)
+                            {
+                                <span class="badge text-bg-success">Unlocked</span>
+                            }
+                            else
+                            {
+                                <span class="badge text-bg-secondary">Locked</span>
+                            }
+                        </td>
+                        <td class="text-end" style="width:60px;">
+                            <button class="btn btn-sm btn-outline-danger"
+                                    title="Slett"
+                                    @onclick="() => ConfirmDeleteReward(r.Id)">
+                                🗑️
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
 }
 
 @code {
@@ -114,7 +123,6 @@ else
     private string feilMelding = "";
     private bool IsAddDisabled => string.IsNullOrWhiteSpace(newRewardName);
 
-
     protected override async Task OnInitializedAsync()
     {
         await ReloadAsync();
@@ -127,7 +135,6 @@ else
         unlockedIds = await HabitService.GetUnlockedRewardIdsAsync();
         progress = await HabitService.GetRewardProgressAsync();
 
-
         // TODO (UX): legg til "claim reward"-knapp i stedet for auto-unlock.
         // TODO (historikk): vis når en reward ble låst opp.
         // TODO (balanse): skill mellom tilgjengelige poeng og all-time poeng.
@@ -135,20 +142,20 @@ else
 
     private async Task AddRewardAsync()
     {
-    feilMelding = "";
+        feilMelding = "";
 
-    if (string.IsNullOrWhiteSpace(newRewardName))
-    {
-        feilMelding = "Du må skrive inn et navn på reward før du kan legge den til.";
-        return;
-    }
+        if (string.IsNullOrWhiteSpace(newRewardName))
+        {
+            feilMelding = "Du må skrive inn et navn på reward før du kan legge den til.";
+            return;
+        }
 
-    await HabitService.AddRewardAsync(newRewardName, newRewardCost);
+        await HabitService.AddRewardAsync(newRewardName, newRewardCost);
 
-    newRewardName = "";
-    newRewardCost = 100;
+        newRewardName = "";
+        newRewardCost = 100;
 
-    await ReloadAsync();
+        await ReloadAsync();
     }
 
     private async Task DeleteRewardAsync(Guid id)
@@ -162,12 +169,13 @@ else
         var ok = await JS.InvokeAsync<bool>(
             "confirm",
             "Er du sikker på at du vil slette denne rewarden?"
-    );
+        );
 
-    if (ok)
-    {
-        await DeleteRewardAsync(id);
+        if (ok)
+        {
+            await DeleteRewardAsync(id);
+        }
     }
 }
 
-}
+</PageWrapper>

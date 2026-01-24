@@ -1,75 +1,92 @@
 @page "/"
 @inject HabitTracker.Services.HabitService HabitService
 
-<div class="container py-4">
-    <h1 class="mb-2">Habit Tracker</h1>
-    <p class="text-muted">En enkel MVP for vaner, streaks og rewards.</p>
+<PageWrapper Title="Habit Tracker" Subtitle="En enkel MVP for vaner, streaks, rewards og coach.">
 
-    @if (progress is null)
-    {
-        <p>Laster...</p>
-    }
-    else
-    {
-        <div class="card mb-3">
-            <div class="card-body">
-                <h5 class="card-title">Fremdrift</h5>
+@if (progress is null)
+{
+    <p>Laster...</p>
+}
+else
+{
+    <div class="card mb-3">
+        <div class="card-body">
+            <h5 class="card-title">Fremdrift</h5>
 
+            <p class="mb-2">
+                <b>Poeng totalt:</b> @progress.TotalPoints
+            </p>
+
+            @if (progress.NextReward is null)
+            {
+                <p class="mb-0">🎉 Ingen neste reward (enten ingen rewards, eller alle er låst opp).</p>
+            }
+            else
+            {
                 <p class="mb-2">
-                    <b>Poeng totalt:</b> @progress.TotalPoints
+                    <b>Neste reward:</b> @progress.NextReward.Name
+                    <span class="text-muted">(@progress.NextReward.CostPoints poeng)</span>
                 </p>
 
-                @if (progress.NextReward is null)
-                {
-                    <p class="mb-0">🎉 Ingen neste reward (enten ingen rewards, eller alle er låst opp).</p>
-                }
-                else
-                {
-                    <p class="mb-2">
-                        <b>Neste reward:</b> @progress.NextReward.Name
-                        <span class="text-muted">(@progress.NextReward.CostPoints poeng)</span>
-                    </p>
-
-                    <div class="progress mb-2" style="height: 18px;">
-                        <div class="progress-bar" role="progressbar"
-                             style="width: @progress.Percent%"
-                             aria-valuenow="@progress.Percent" aria-valuemin="0" aria-valuemax="100">
-                            @progress.Percent%
-                        </div>
+                <div class="progress mb-2" style="height: 18px;">
+                    <div class="progress-bar" role="progressbar"
+                         style="width: @progress.Percent%"
+                         aria-valuenow="@progress.Percent" aria-valuemin="0" aria-valuemax="100">
+                        @progress.Percent%
                     </div>
-
-                    <p class="mb-0">
-                        <b>Mangler:</b> @progress.PointsToNext poeng
-                    </p>
-                }
-            </div>
-        </div>
-    }
-
-    <div class="row g-3 mt-2">
-        <div class="col-12 col-md-6">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Habits</h5>
-                    <p class="card-text">Marker vaner i en 7-dagers oversikt og bygg streaks.</p>
-                    <a class="btn btn-primary" href="/habits">Åpne Habits</a>
                 </div>
-            </div>
-        </div>
 
-        <div class="col-12 col-md-6">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Rewards</h5>
-                    <p class="card-text">Lag belønninger og lås dem opp med poeng.</p>
-                    <a class="btn btn-primary" href="/rewards">Åpne Rewards</a>
-                </div>
+                <p class="mb-0">
+                    <b>Mangler:</b> @progress.PointsToNext poeng
+                </p>
+            }
+        </div>
+    </div>
+}
+
+<div class="row g-3">
+    <div class="col-12 col-md-6">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">Habits</h5>
+                <p class="card-text">Marker vaner i en 7-dagers oversikt og bygg streaks.</p>
+                <a class="btn btn-primary" href="/habits">Åpne Habits</a>
             </div>
         </div>
     </div>
 
-    @* TODO (senere): legg til "dagens poeng", "beste streak", og ukesstatistikk *@
+    <div class="col-12 col-md-6">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">Rewards</h5>
+                <p class="card-text">Lag belønninger og lås dem opp med poeng.</p>
+                <a class="btn btn-primary" href="/rewards">Åpne Rewards</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-md-6">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">Stats</h5>
+                <p class="card-text">Se poeng og fullføringer for de siste 7 dagene.</p>
+                <a class="btn btn-outline-primary" href="/stats">Åpne Stats</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-md-6">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">Coach</h5>
+                <p class="card-text">Få råd, motivasjon og forslag (MVP).</p>
+                <a class="btn btn-outline-primary" href="/coach">Åpne Coach</a>
+            </div>
+        </div>
+    </div>
 </div>
+
+@* TODO (senere): legg til "dagens poeng", "beste streak", og ukesstatistikk *@
 
 @code {
     private HabitTracker.Models.RewardProgress? progress;
@@ -80,3 +97,5 @@
         progress = await HabitService.GetRewardProgressAsync();
     }
 }
+
+</PageWrapper>

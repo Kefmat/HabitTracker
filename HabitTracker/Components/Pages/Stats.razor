@@ -1,7 +1,7 @@
 @page "/stats"
 @inject HabitTracker.Services.HabitService HabitService
 
-<h3>Stats (siste 7 dager)</h3>
+<PageWrapper Title="Stats" Subtitle="Oversikt over de siste 7 dagene.">
 
 @if (stats is null)
 {
@@ -46,37 +46,39 @@ else
         <div class="card-body">
             <h5 class="card-title">Per dag</h5>
 
-            <table class="table table-sm align-middle">
-                <thead>
-                    <tr>
-                        <th>Dato</th>
-                        <th style="text-align:right;">Poeng</th>
-                        <th style="text-align:right;">Fullføringer</th>
-                        <th>Fremdrift</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var d in stats.Days)
-                    {
-                        var maxPoints = stats.Days.Max(x => x.Points);
-                        var pct = maxPoints <= 0 ? 0 : (int)Math.Clamp((double)d.Points / maxPoints * 100, 0, 100);
-
+            <div class="table-responsive">
+                <table class="table table-sm align-middle">
+                    <thead>
                         <tr>
-                            <td>@d.Date.ToString("ddd dd.MM")</td>
-                            <td style="text-align:right;">@d.Points</td>
-                            <td style="text-align:right;">@d.Completions</td>
-                            <td style="min-width:220px;">
-                                <div class="progress" style="height: 14px;">
-                                    <div class="progress-bar" role="progressbar"
-                                         style="width: @pct%"
-                                         aria-valuenow="@pct" aria-valuemin="0" aria-valuemax="100">
-                                    </div>
-                                </div>
-                            </td>
+                            <th>Dato</th>
+                            <th class="text-end">Poeng</th>
+                            <th class="text-end">Fullføringer</th>
+                            <th>Fremdrift</th>
                         </tr>
-                    }
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        @foreach (var d in stats.Days)
+                        {
+                            var maxPoints = stats.Days.Max(x => x.Points);
+                            var pct = maxPoints <= 0 ? 0 : (int)Math.Clamp((double)d.Points / maxPoints * 100, 0, 100);
+
+                            <tr>
+                                <td>@d.Date.ToString("ddd dd.MM")</td>
+                                <td class="text-end">@d.Points</td>
+                                <td class="text-end">@d.Completions</td>
+                                <td style="min-width:220px;">
+                                    <div class="progress" style="height: 14px;">
+                                        <div class="progress-bar" role="progressbar"
+                                             style="width: @pct%"
+                                             aria-valuenow="@pct" aria-valuemin="0" aria-valuemax="100">
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
 
             @* TODO (senere): enkel graf, og filter for 7/14/30 dager *@
         </div>
@@ -92,3 +94,5 @@ else
         stats = await HabitService.GetWeeklyStatsAsync();
     }
 }
+
+</PageWrapper>

@@ -1,0 +1,24 @@
+@* 
+    PageWrapper gir konsistent layout på alle sider:
+    - samme bredde
+    - samme spacing
+    - samme overskrift + intro
+    TODO (senere): legg til breadcrumbs / side-ikoner hvis ønskelig.
+*@
+<div class="container py-4" style="max-width: 980px;">
+    <div class="mb-3">
+        <h3 class="mb-1">@Title</h3>
+        @if (!string.IsNullOrWhiteSpace(Subtitle))
+        {
+            <p class="text-muted mb-0">@Subtitle</p>
+        }
+    </div>
+
+    @ChildContent
+</div>
+
+@code {
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public string? Subtitle { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

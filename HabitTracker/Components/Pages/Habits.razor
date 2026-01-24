@@ -2,8 +2,7 @@
 @inject HabitTracker.Services.HabitService HabitService
 @inject IJSRuntime JS
 
-
-<h3>Habits</h3>
+<PageWrapper Title="Habits" Subtitle="Legg til vaner, kryss av daglig, bygg streaks.">
 
 @if (!string.IsNullOrWhiteSpace(feilMelding))
 {
@@ -12,44 +11,53 @@
     </div>
 }
 
-<div style="display:flex; gap:8px; align-items:center; margin-bottom:12px;">
-    <input @bind="newHabitName"
+<div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+    <input class="form-control"
+           style="max-width: 320px;"
+           @bind="newHabitName"
            @bind:event="oninput"
-           placeholder="Ny vane"
-           style="min-width:240px;" />
+           placeholder="Ny vane" />
 
-    <input @bind="newHabitPoints" type="number" style="width:90px;" />
+    <input class="form-control"
+           style="max-width: 140px;"
+           @bind="newHabitPoints"
+           type="number" />
 
     <button class="btn btn-primary"
             @onclick="AddHabitAsync"
             disabled="@IsAddHabitDisabled">
-        Add
+        Legg til
     </button>
 </div>
 
-<p>
-    <b>Poeng i dag:</b> @pointsToday
-    <span style="margin-left:16px;"><b>Poeng totalt:</b> @pointsAllTime</span>
-</p>
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <div class="d-flex flex-wrap gap-3">
+            <div><b>Poeng i dag:</b> @pointsToday</div>
+            <div><b>Poeng totalt:</b> @pointsAllTime</div>
+        </div>
+    </div>
+</div>
 
 @if (habits.Count == 0)
 {
-    <p style="opacity:.7;">Ingen vaner ennå — legg til en over.</p>
+    <p class="text-muted">Ingen vaner ennå — legg til en over.</p>
 }
 else
 {
-    <div style="overflow-x:auto;">
+    <div class="table-responsive">
         <table class="table table-bordered table-hover table-sm align-middle">
             <thead>
                 <tr>
                     <th>Vane</th>
-                    <th style="text-align:center;">Streak</th>
+                    <th class="text-center">Streak</th>
 
                     @foreach (var d in last7Days)
                     {
                         var isToday = d == DateOnly.FromDateTime(DateTime.Now);
 
-                        <th style="text-align:center; @(isToday ? "background-color:#eef6ff; font-weight:bold;" : "")">
+                        <th class="text-center"
+                            style="@(isToday ? "background-color:#eef6ff; font-weight:bold;" : "")">
                             @d.ToString("MM-dd")
                         </th>
                     }
@@ -64,10 +72,10 @@ else
                     <tr>
                         <td style="min-width:220px;">
                             <div><b>@habit.Name</b></div>
-                            <div style="opacity:.7;">+@habit.Points poeng</div>
+                            <div class="text-muted">+@habit.Points poeng</div>
                         </td>
 
-                        <td style="text-align:center; width:180px;">
+                        <td class="text-center" style="width: 220px;">
                             @{
                                 var streak = streaks.GetValueOrDefault(habit.Id);
                             }
@@ -88,7 +96,8 @@ else
                             var done = completedByDate.TryGetValue(d, out var set) && set.Contains(habit.Id);
                             var isToday = d == DateOnly.FromDateTime(DateTime.Now);
 
-                            <td style="text-align:center; @(isToday ? "background-color:#f8fbff;" : "")">
+                            <td class="text-center"
+                                style="@(isToday ? "background-color:#f8fbff;" : "")">
                                 <button class="btn btn-sm @(done ? "btn-success" : "btn-outline-secondary")"
                                         title="Toggle @d"
                                         @onclick="() => ToggleDateAsync(habit.Id, d)">
@@ -97,7 +106,7 @@ else
                             </td>
                         }
 
-                        <td style="text-align:right; width:60px;">
+                        <td class="text-end" style="width:60px;">
                             <button class="btn btn-sm btn-outline-danger"
                                     title="Slett"
                                     @onclick="() => ConfirmDeleteHabit(habit.Id)">
@@ -125,7 +134,6 @@ else
 
     // HabitId -> beste streak (all-time)
     private Dictionary<Guid, int> bestStreaks = new();
-
 
     private int pointsToday;
     private int pointsAllTime;
@@ -183,7 +191,6 @@ else
         // TODO (funksjon): støtte for ulike frekvenser (daglig, ukentlig, egendefinert).
     }
 
-
     private async Task AddHabitAsync()
     {
         feilMelding = "";
@@ -237,3 +244,5 @@ else
         { 30, "🔥 30 dager streak!" }
     };
 }
+
+</PageWrapper>
